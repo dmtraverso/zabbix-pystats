@@ -31,14 +31,17 @@ def retrieve_stats():
 def check_connection():
     try:
         db = MySQLdb.connect(host=options.check, user=options.username,
-                            passwd=options.password, db=options.database,
-                            connect_timeout=3)
+                            passwd=options.password, connect_timeout=3)
         c = db.cursor()
-        # show status
-        print db.stat()
+        # show databases
+        if c.execute("show databases like '%s'" % options.database):
+            # execute stat() function from cursor
+            print db.stat()
+        else:
+            print "ERROR: could not find database %s" % options.database
         db.close()
     except MySQLdb.Error as e:
-        print "Connection error: %s" %e
+        print "ERROR: %s" %e
 
 def main(argv):
     # Help + option parsing
