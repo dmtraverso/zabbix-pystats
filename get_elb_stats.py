@@ -32,7 +32,7 @@ def discover_elbs():
     # https://www.zabbix.com/documentation/2.0/manual/discovery/low_level_discovery
     if len(elbs) > 0:
         discovery = {'data' : elbs}
-        print discovery
+        print json.dumps(discovery)
 
 def check_elb():
     pass
