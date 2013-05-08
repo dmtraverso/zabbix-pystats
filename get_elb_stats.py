@@ -6,9 +6,18 @@ import sys
 import boto
 import json
 import re
+import string
 
 from optparse import OptionParser
 from pprint import pprint
+from dns import resolver
+
+# TODO:
+#       improve comments
+#       avoid global variables
+#       use boto to get health checks from ELBs in discovery
+#       catch boto exceptions
+#       extend for different regions
 
 def discover_elbs():
     regex = re.compile(".*\.elb\.amazonaws\.com")
@@ -35,7 +44,17 @@ def discover_elbs():
         print json.dumps(discovery)
 
 def check_elb():
-    pass
+    # get just the name of the ELB
+    elb_name = string.split(options.check, ".")[0]
+    # get ELB configuration and extract its healthcheck
+    c = boto.connect_elb()
+    result = c.get_all_load_balancers(elb_name)
+    for lb in result:
+        print lb.dns_name
+    # get list of A records from the ELB
+    ips = resolver.query(options.check)
+    for ip in ips:
+        print ip
 
 def main(argv):
     # Help + option parsing
