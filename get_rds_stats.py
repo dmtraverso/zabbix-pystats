@@ -8,6 +8,10 @@ import MySQLdb
 
 from optparse import OptionParser
 
+# TODO:
+#       improve argument checking
+#       add comments to functions
+#       fix indentation
 def retrieve_stats():
     c = boto.connect_cloudwatch()
     end   = datetime.datetime.now()
