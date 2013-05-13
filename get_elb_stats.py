@@ -13,7 +13,7 @@ import httplib
 from optparse import OptionParser
 from dns import resolver
 
-TIMEOUT = 3
+TIMEOUT = 2
 # TODO:
 #       improve comments
 #       avoid global variables
@@ -45,21 +45,21 @@ def discover_elbs():
                         lb = (lb for lb in elbs if lb.dns_name==record).next()
                         # check if it has an HTTP URL for health_check
                         # the format of the health_check target is
-                        # PROTOCOL:PORT[:PATH] **we only care about path**
-                        health_check = string.split(lb.health_check.target, ":")
-                        if len(health_check) == 3:
-                            health_uri = health_check[2]
-                        else:
-                            health_uri = ""
+                        # PROTOCOL:PORT:[PATH] **we only care about path**
+                        uri = ""
+                        if len(string.split(lb.health_check.target, ":")) == 3:
+                            uri = string.split(lb.health_check.target, ":")[2]
                         for listener in lb.listeners:
+                            # create health_check string
+                            health_check = (listener.protocol + ":" +
+                                            str(listener.load_balancer_port) +
+                                            ":" + uri)
                             # store results as dict
                             data.append({'{#ELB_NAME}' : lb.name + "-" +
                                         str(listener.load_balancer_port),
                                         '{#ELB_DNS}' : lb.dns_name,
-                                        '{#ELB_PORT}' : listener.load_balancer_port,
-                                        '{#ELB_PROTO}' : listener.protocol,
-                                        '{#ELB_HOST}' : item.name,
-                                        '{#ELB_PATH}' : health_uri})
+                                        '{#ELB_HEALTH_CHECK}' : health_check,
+                                        '{#ELB_HOST}' : item.name})
     except StopIteration:
         pass
     # build JSON for Zabbix
@@ -73,10 +73,10 @@ def check_endpoint(ip, args):
     path = args[2]
     result = {}
     # create a nicer url for messages
-    url = str(str.lower(proto) + "://" + ip + ":" + port + path)
+    url = str(str.lower(proto) + "://" + ip + ":" + port)
     # decide which type of check we should use
     try:
-        if proto == "TCP":
+        if proto in ("TCP", "SSL"):
             # check TCP
             s = socket.create_connection((ip, port), TIMEOUT)
             result['status'] = "OK"
@@ -92,6 +92,7 @@ def check_endpoint(ip, args):
             # default path
             if path == "":
                 path = "/ping"
+            url = url + path
             # make request
             conn.request("GET", path)
             response = conn.getresponse()
