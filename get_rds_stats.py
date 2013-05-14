@@ -52,7 +52,7 @@ def main(argv):
     usage = "%prog [options] arg"
     parser = OptionParser(usage)
     parser.add_option("-m","--metric", help="name of the metric you want to get")
-    parser.add_option("-i","--identifier", help="database indentifier for CloudWatch metrics")
+    parser.add_option("-i","--identifier", help="RDS indentifier for CloudWatch metrics")
     parser.add_option("-c","--check", help="hostname for connection checking")
     parser.add_option("-d","--database", help="schema to connection checking")
     parser.add_option("-u","--username", help="MySQL username", default="zabbix")

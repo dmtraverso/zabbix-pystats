@@ -21,6 +21,35 @@ TIMEOUT = 2
 #       catch boto exceptions
 #       extend for different regions
 
+def retrieve_stats():
+    c = boto.connect_cloudwatch()
+    end   = datetime.datetime.now()
+    start = end - datetime.timedelta(minutes=2)
+    dimension = {'LoadBalancerName': options.identifier}
+    # this could be improved
+    if options.metric in ("Latency", "HealthyHostCount",
+                          "UnHealthyHostCount"):
+        statistics = "Average"
+    else:
+        statistics = "Sum"
+    # get metrics from CloudWatch
+    metrics = c.get_metric_statistics(
+            60,
+            start,
+            end,
+            options.metric,
+            'AWS/ELB',
+            statistics,
+            dimension)
+    if len(metrics) > 0:
+        # sort datapoints based on its timestamp
+        metrics_sorted = sorted(metrics, key=lambda stat: stat['Timestamp'])
+        print "%0.4f" % metrics_sorted[-1][statistics]
+    else:
+        #sys.exit("ZBX_UNSUPPORTED")
+        # return 0 if not datapoints were found
+        print 0
+
 def discover_elbs():
     regex = re.compile(".*\.elb\.amazonaws\.com")
     data = [] # list to store the result
@@ -55,8 +84,8 @@ def discover_elbs():
                                             str(listener.load_balancer_port) +
                                             ":" + uri)
                             # store results as dict
-                            data.append({'{#ELB_NAME}' : lb.name + "-" +
-                                        str(listener.load_balancer_port),
+                            data.append({'{#ELB_NAME}' : lb.name,
+                                        '{#ELB_PORT}' : listener.load_balancer_port,
                                         '{#ELB_DNS}' : lb.dns_name,
                                         '{#ELB_HEALTH_CHECK}' : health_check,
                                         '{#ELB_HOST}' : item.name})
@@ -135,6 +164,8 @@ def main(argv):
     # Help + option parsing
     usage = "%prog [options] arg"
     parser = OptionParser(usage, add_help_option=False)
+    parser.add_option("-m","--metric", help="name of the metric you want to get")
+    parser.add_option("-i","--identifier", help="ELB indentifier for CloudWatch metrics")
     parser.add_option("-d","--discovery", help="discover ELBs for the specified zone",
                        action="store_true", default=False)
     parser.add_option("-z","--zone", help="zone name for discovery. e.g. qa.cloudhub.io")
@@ -153,6 +184,11 @@ def main(argv):
             parser.error("Missing --health_check for ELB checks")
         else:
             check_elb()
+    elif options.metric:
+        if not options.identifier:
+            parser.error("Missing --identifier to get CloudWatch metrics")
+        else:
+            retrieve_stats()
     else:
         parser.error("Missing mandatory arguments")
 
