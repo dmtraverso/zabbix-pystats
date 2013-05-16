@@ -17,6 +17,7 @@ from subprocess import call
 # Constants
 CACHE_TTL = 30
 MAX_RETRIES = 3
+TIMEOUT = 3
 VALID_TIME = time.time() - CACHE_TTL
 STATS_FILE = "/tmp/" + os.path.splitext(os.path.basename(sys.argv[0]))[0] + ".cache"
 
@@ -30,7 +31,7 @@ def retrieve_stats(url):
     ''' Connectos to the REST API and returns it contents '''
     try:
         # return string with stats
-        u = urllib2.urlopen(url)
+        u = urllib2.urlopen(url, timeout=TIMEOUT)
         stats = u.read()
         # check if it is JSON
         json.loads(stats)
